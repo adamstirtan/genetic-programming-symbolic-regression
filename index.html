@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simulation UI Template</title>
+    <title>Genetic Programming Symbolic Regression</title>
     <style>
       :root {
         --bg: #0e1320;
@@ -132,17 +132,88 @@
         flex: 1;
         position: relative;
         min-width: 0;
-        background: #000;
+        background: var(--bg-2);
         display: flex;
+        flex-direction: column;
+        padding: 12px;
+        gap: 12px;
       }
-      #canvas-container {
+      .main-top {
         flex: 1;
+        display: flex;
+        gap: 12px;
+        min-height: 0;
+      }
+      .tree-panel {
+        flex: 1;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        overflow: auto;
         position: relative;
       }
-      #simCanvas {
+      .tree-panel h3 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: var(--muted);
+      }
+      #tree-container {
         width: 100%;
-        height: 100%;
-        display: block;
+        height: calc(100% - 30px);
+        position: relative;
+        background: var(--bg);
+        border-radius: 8px;
+      }
+      .plot-panel {
+        flex: 1;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+      }
+      .plot-panel h3 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: var(--muted);
+      }
+      #plot-canvas {
+        flex: 1;
+        background: var(--bg);
+        border-radius: 8px;
+      }
+      .fitness-panel {
+        height: 200px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+      }
+      .fitness-panel h3 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: var(--muted);
+      }
+      #fitness-chart-container {
+        height: calc(100% - 30px);
+      }
+      #fitness-chart-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      #canvas-container {
+        display: none;
+      }
+      #simCanvas {
+        display: none;
       }
       .panel {
         background: var(--panel-2);
@@ -280,6 +351,20 @@
         font-size: 13px;
         color: var(--text);
       }
+      select {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        width: 100%;
+        cursor: pointer;
+      }
+      select:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
       @media (max-width: 900px) {
         .brand .menu-btn {
           display: inline-flex;
@@ -326,8 +411,8 @@
             ☰
           </button>
           <div class="brand-title">
-            <span>Simulation UI Template</span>
-            <span class="brand-badge">Reusable controls and layout</span>
+            <span>Genetic Programming</span>
+            <span class="brand-badge">Symbolic Regression</span>
           </div>
         </div>
         <div class="top-controls" id="top-controls"></div>
@@ -345,20 +430,14 @@
             <div class="panel">
               <h3>Progress</h3>
               <div class="stat-item">
-                <span>Step</span><span id="iteration">0</span>
+                <span>Generation</span><span id="iteration">0</span>
               </div>
               <div class="stat-item">
-                <span>Metric</span><span id="metric">N/A</span>
+                <span>Best Fitness</span><span id="metric">N/A</span>
               </div>
               <div class="stat-item">
                 <span>Status</span><span id="status">Ready</span>
               </div>
-            </div>
-
-            <!-- Metric Chart Panel -->
-            <div class="panel">
-              <h3>Metric</h3>
-              <div class="chart-wrap"><canvas id="metricChart"></canvas></div>
             </div>
 
             <!-- Controls Panel -->
@@ -368,21 +447,78 @@
                 <button id="startButton" title="Start">▶ Start</button>
                 <button id="pauseButton" title="Pause" disabled>⏸ Pause</button>
                 <button id="resetButton" title="Reset">↻ Reset</button>
-                <button id="saveButton" title="Save">💾 Save</button>
               </div>
             </div>
 
-            <!-- Configuration (add your controls here) -->
+            <!-- Target Function Panel -->
             <div class="panel">
-              <h3>Configuration</h3>
-              <p style="margin: 0; color: var(--muted); font-size: 12px">
-                Add controls for your simulation here.
-              </p>
+              <h3>Target Function</h3>
+              <div class="control-group">
+                <label for="targetFunction">Function</label>
+                <select id="targetFunction">
+                  <option value="sin">sin(x)</option>
+                  <option value="x2">x²</option>
+                  <option value="x2_plus_x">x² + x</option>
+                  <option value="abs">abs(x)</option>
+                  <option value="x3">x³ - x</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- GA Parameters Panel -->
+            <div class="panel">
+              <h3>GA Parameters</h3>
+              
+              <div class="control-group">
+                <label for="populationSize">Population Size</label>
+                <input type="range" id="populationSize" min="10" max="100" value="50" step="10">
+                <span class="value" id="populationSizeValue">50</span>
+              </div>
+
+              <div class="control-group">
+                <label for="generations">Generations</label>
+                <input type="range" id="generations" min="10" max="200" value="100" step="10">
+                <span class="value" id="generationsValue">100</span>
+              </div>
+
+              <div class="control-group">
+                <label for="mutationRate">Mutation Rate</label>
+                <input type="range" id="mutationRate" min="0" max="1" value="0.1" step="0.05">
+                <span class="value" id="mutationRateValue">0.10</span>
+              </div>
+
+              <div class="control-group">
+                <label for="crossoverRate">Crossover Rate</label>
+                <input type="range" id="crossoverRate" min="0" max="1" value="0.9" step="0.05">
+                <span class="value" id="crossoverRateValue">0.90</span>
+              </div>
+
+              <div class="control-group">
+                <label for="maxDepth">Max Tree Depth</label>
+                <input type="range" id="maxDepth" min="2" max="8" value="5" step="1">
+                <span class="value" id="maxDepthValue">5</span>
+              </div>
             </div>
           </div>
         </aside>
 
         <div class="main">
+          <div class="main-top">
+            <div class="tree-panel">
+              <h3>Best Program Tree</h3>
+              <div id="tree-container"></div>
+            </div>
+            <div class="plot-panel">
+              <h3>Function Comparison</h3>
+              <canvas id="plot-canvas"></canvas>
+            </div>
+          </div>
+          <div class="fitness-panel">
+            <h3>Fitness Over Generations</h3>
+            <div id="fitness-chart-container">
+              <canvas id="fitnessChart"></canvas>
+            </div>
+          </div>
           <div id="canvas-container">
             <canvas id="simCanvas"></canvas>
           </div>
@@ -399,7 +535,7 @@
         aria-labelledby="template-modal-title"
       >
         <header>
-          <h3 id="template-modal-title">About this Template</h3>
+          <h3 id="template-modal-title">About Genetic Programming</h3>
           <button
             class="close-btn"
             id="template-modal-close"
@@ -409,16 +545,32 @@
           </button>
         </header>
         <section id="template-modal-content">
+          <h4>Symbolic Regression with Genetic Programming</h4>
           <p>
-            This is a clean simulation UI template. It includes the layout,
-            controls, chart area, and canvases, but no simulation logic. Hook up
-            your own simulation in <code>app.js</code>.
+            This simulation uses Genetic Programming to evolve mathematical expressions 
+            that approximate a target function. Each individual in the population is represented 
+            as an expression tree.
+          </p>
+          <h4>How It Works</h4>
+          <p>
+            <strong>Terminals:</strong> Variables (x) and random constants<br>
+            <strong>Operators:</strong> +, -, *, /, sin, cos, exp, log, abs<br>
+            <strong>Fitness:</strong> Mean squared error between evolved and target function<br>
+            <strong>Selection:</strong> Tournament selection<br>
+            <strong>Crossover:</strong> Swap random subtrees between parents<br>
+            <strong>Mutation:</strong> Replace random subtrees with new random trees
+          </p>
+          <h4>Instructions</h4>
+          <p>
+            1. Select a target function from the dropdown<br>
+            2. Adjust GA parameters (population size, mutation rate, etc.)<br>
+            3. Click Start to begin evolution<br>
+            4. Watch the best program tree and function comparison update in real-time
           </p>
         </section>
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
