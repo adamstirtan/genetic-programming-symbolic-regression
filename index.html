@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simulation UI Template</title>
+    <style>
+      :root {
+        --bg: #0e1320;
+        --bg-2: #0b1020;
+        --panel: #121a2b;
+        --panel-2: #0f1730;
+        --border: #1f2a44;
+        --text: #e7edf6;
+        --muted: #a7b1c2;
+        --accent: #5cf2c7;
+        --accent-2: #57a6ff;
+        --danger: #ff6b6b;
+        --ok: #4ecdc4;
+        --bar-h: 56px;
+        --sidebar-w: 380px;
+        --radius: 12px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+          Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        color: var(--text);
+        background: var(--bg);
+        overflow: hidden;
+      }
+      .app {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .topbar {
+        height: var(--bar-h);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      .brand .menu-btn {
+        display: none;
+      }
+      .brand-title {
+        font-size: 16px;
+        color: var(--text);
+      }
+      .brand-badge {
+        font-size: 12px;
+        color: var(--muted);
+        padding-left: 8px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .top-controls {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        gap: 8px;
+      }
+      .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        border-color: var(--accent);
+      }
+      .toggle-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--muted);
+        cursor: pointer;
+        user-select: none;
+      }
+      .toggle-label input {
+        accent-color: var(--accent-2);
+      }
+      .app-body {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        padding: 16px;
+        overflow: auto;
+      }
+      .main {
+        flex: 1;
+        position: relative;
+        min-width: 0;
+        background: #000;
+        display: flex;
+      }
+      #canvas-container {
+        flex: 1;
+        position: relative;
+      }
+      #simCanvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .panel {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+      }
+      .panel + .panel {
+        margin-top: 16px;
+      }
+      .panel h3 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: var(--muted);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
+      .stat-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 4px 0;
+        color: var(--muted);
+      }
+      .stat-item span:last-child {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .chart-wrap {
+        width: 100%;
+        height: 200px;
+      }
+      .chart-wrap canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      .control-group {
+        margin: 12px 0;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px 12px;
+        align-items: center;
+      }
+      .control-group label {
+        font-size: 12px;
+        color: var(--muted);
+        grid-column: 1 / span 2;
+      }
+      .control-group input[type="range"] {
+        width: 100%;
+      }
+      .control-group .value {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      button {
+        background: transparent;
+        border: 1px solid var(--accent);
+        color: var(--text);
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:hover {
+        filter: brightness(1.1);
+      }
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 80;
+      }
+      .modal-backdrop.show {
+        display: block;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(760px, 92vw);
+        max-height: 80vh;
+        overflow: auto;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        z-index: 90;
+      }
+      .modal.show {
+        display: block;
+      }
+      .modal header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .modal header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: var(--text);
+      }
+      .modal .close-btn {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: var(--text);
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+      }
+      .modal section {
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .modal section h4 {
+        margin: 12px 0 6px;
+        font-size: 13px;
+        color: var(--text);
+      }
+      @media (max-width: 900px) {
+        .brand .menu-btn {
+          display: inline-flex;
+        }
+        .app-body {
+          position: relative;
+        }
+        .sidebar {
+          position: fixed;
+          top: var(--bar-h);
+          left: 0;
+          height: calc(100vh - var(--bar-h));
+          width: min(86vw, 380px);
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+          z-index: 60;
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .drawer-backdrop {
+          display: none;
+          position: fixed;
+          inset: 0;
+          top: var(--bar-h);
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 55;
+        }
+        .drawer-backdrop.show {
+          display: block;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <button
+            id="menu-toggle"
+            class="icon-btn menu-btn"
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+          <div class="brand-title">
+            <span>Simulation UI Template</span>
+            <span class="brand-badge">Reusable controls and layout</span>
+          </div>
+        </div>
+        <div class="top-controls" id="top-controls"></div>
+        <div class="actions">
+          <button class="icon-btn" id="template-info-btn" aria-label="About">
+            i
+          </button>
+        </div>
+      </header>
+
+      <div class="app-body">
+        <aside id="sidebar" class="sidebar">
+          <div id="sidebar-panels">
+            <!-- Progress Panel -->
+            <div class="panel">
+              <h3>Progress</h3>
+              <div class="stat-item">
+                <span>Step</span><span id="iteration">0</span>
+              </div>
+              <div class="stat-item">
+                <span>Metric</span><span id="metric">N/A</span>
+              </div>
+              <div class="stat-item">
+                <span>Status</span><span id="status">Ready</span>
+              </div>
+            </div>
+
+            <!-- Metric Chart Panel -->
+            <div class="panel">
+              <h3>Metric</h3>
+              <div class="chart-wrap"><canvas id="metricChart"></canvas></div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div class="panel">
+              <h3>Controls</h3>
+              <div class="buttons">
+                <button id="startButton" title="Start">▶ Start</button>
+                <button id="pauseButton" title="Pause" disabled>⏸ Pause</button>
+                <button id="resetButton" title="Reset">↻ Reset</button>
+                <button id="saveButton" title="Save">💾 Save</button>
+              </div>
+            </div>
+
+            <!-- Configuration (add your controls here) -->
+            <div class="panel">
+              <h3>Configuration</h3>
+              <p style="margin: 0; color: var(--muted); font-size: 12px">
+                Add controls for your simulation here.
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <div class="main">
+          <div id="canvas-container">
+            <canvas id="simCanvas"></canvas>
+          </div>
+        </div>
+        <div id="backdrop" class="drawer-backdrop"></div>
+      </div>
+
+      <div id="template-modal-backdrop" class="modal-backdrop"></div>
+      <div
+        id="template-modal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="template-modal-title"
+      >
+        <header>
+          <h3 id="template-modal-title">About this Template</h3>
+          <button
+            class="close-btn"
+            id="template-modal-close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </header>
+        <section id="template-modal-content">
+          <p>
+            This is a clean simulation UI template. It includes the layout,
+            controls, chart area, and canvases, but no simulation logic. Hook up
+            your own simulation in <code>app.js</code>.
+          </p>
+        </section>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
