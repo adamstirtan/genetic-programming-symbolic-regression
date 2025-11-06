@@ -94,10 +94,10 @@ class TreeNode {
     if (this.type === "terminal" || this.type === "constant") {
       return this.value.toString();
     }
-    
+
     const op = this.value;
     // Unary operators
-    if (["sin", "cos", "exp", "log", "abs"].includes(op)) {
+    if (["sin", "cos", "exp", "log", "abs", "sqrt"].includes(op)) {
       const arg = this.left ? this.left.toString() : "";
       return `${op}(${arg})`;
     }
@@ -118,7 +118,7 @@ class TreeNode {
       }
 
       const op = this.value;
-      
+
       // Unary operators
       if (op === "sin") {
         return Math.sin(this.left.evaluate(x));
@@ -140,6 +140,11 @@ class TreeNode {
       }
       if (op === "abs") {
         return Math.abs(this.left.evaluate(x));
+      }
+      if (op === "sqrt") {
+        const val = this.left.evaluate(x);
+        if (val < 0) return 0; // Handle invalid sqrt
+        return Math.sqrt(Math.abs(val));
       }
 
       // Binary operators
@@ -178,19 +183,18 @@ class GeneticProgramming {
     this.mutationRate = config.mutationRate || 0.1;
     this.crossoverRate = config.crossoverRate || 0.9;
     this.targetFunction = config.targetFunction;
-    
+
     // Constants for safe evaluation
     this.MAX_EXP_VALUE = 50;
     this.MIN_EXP_VALUE = -50;
     this.MAX_RESULT_VALUE = 1e10;
-    
+
     this.operators = ["+", "-", "*", "/"];
-    this.unaryOperators = ["sin", "cos", "abs"]; // Reduced set for stability
-    
+    this.unaryOperators = ["sin", "cos", "abs", "exp", "log", "sqrt"];
     this.population = [];
     this.bestIndividual = null;
     this.bestFitness = Infinity;
-    
+
     // Generate sample points
     this.samplePoints = [];
     this.targetValues = [];
@@ -205,7 +209,7 @@ class GeneticProgramming {
   // Generate random tree
   generateTree(depth = 0, method = "grow") {
     const maxD = this.maxDepth;
-    
+
     // Force terminal at max depth
     if (depth >= maxD) {
       return this.generateTerminal();
@@ -213,9 +217,10 @@ class GeneticProgramming {
 
     // For "grow" method, randomly choose terminal or operator
     // For "full" method, force operators until max depth
-    const useOperator = method === "full" 
-      ? depth < maxD - 1
-      : Math.random() < 0.7 && depth < maxD - 1;
+    const useOperator =
+      method === "full"
+        ? depth < maxD - 1
+        : Math.random() < 0.7 && depth < maxD - 1;
 
     if (useOperator) {
       return this.generateOperator(depth, method);
@@ -237,13 +242,17 @@ class GeneticProgramming {
   generateOperator(depth, method) {
     // Choose between binary and unary operators
     const useUnary = Math.random() < 0.3;
-    
+
     if (useUnary) {
-      const op = this.unaryOperators[Math.floor(Math.random() * this.unaryOperators.length)];
+      const op =
+        this.unaryOperators[
+          Math.floor(Math.random() * this.unaryOperators.length)
+        ];
       const child = this.generateTree(depth + 1, method);
       return new TreeNode(op, child, null, "operator");
     } else {
-      const op = this.operators[Math.floor(Math.random() * this.operators.length)];
+      const op =
+        this.operators[Math.floor(Math.random() * this.operators.length)];
       const left = this.generateTree(depth + 1, method);
       const right = this.generateTree(depth + 1, method);
       return new TreeNode(op, left, right, "operator");
@@ -254,7 +263,7 @@ class GeneticProgramming {
   initializePopulation() {
     this.population = [];
     const half = Math.floor(this.populationSize / 2);
-    
+
     for (let i = 0; i < half; i++) {
       this.population.push(this.generateTree(0, "grow"));
     }
@@ -355,7 +364,7 @@ class GeneticProgramming {
   mutate(individual) {
     const mutated = individual.clone();
     const node = this.getRandomNode(mutated);
-    
+
     if (node) {
       // Replace with new random subtree
       const newSubtree = this.generateTree(0, "grow");
@@ -469,10 +478,10 @@ class GPSymbolicRegressionApp {
     this.treeCanvas.style.height = "100%";
     this.treeContainer.appendChild(this.treeCanvas);
     this.treeCtx = this.treeCanvas.getContext("2d");
-    
+
     this.plotCanvas = document.getElementById("plot-canvas");
     this.plotCtx = this.plotCanvas.getContext("2d");
-    
+
     this.fitnessCanvas = document.getElementById("fitnessChart");
     this.fitnessCtx = this.fitnessCanvas.getContext("2d");
 
@@ -496,6 +505,21 @@ class GPSymbolicRegressionApp {
       x2_plus_x: (x) => x * x + x,
       abs: (x) => Math.abs(x),
       x3: (x) => x * x * x - x,
+      // More complicated functions
+      gaussian: (x) => Math.exp(-x * x),
+      damped_oscillator: (x) => Math.exp(-0.1 * Math.abs(x)) * Math.cos(2 * x),
+      rational: (x) => (x * x + 1) / (x * x + x + 1),
+      step: (x) => (x < 0 ? -1 : x > 1 ? 1 : x),
+      sinc: (x) => (x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x)),
+      polynomial: (x) => 0.5 * x * x * x - 2 * x * x + x + 1,
+      exponential_decay: (x) => 2 * Math.exp(-Math.abs(x)),
+      logistic: (x) => 1 / (1 + Math.exp(-2 * x)),
+      hyperbolic: (x) => Math.tanh(x),
+      oscillatory: (x) =>
+        Math.sin(x) + 0.5 * Math.sin(3 * x) + 0.25 * Math.sin(5 * x),
+      bump: (x) => Math.exp(-(x * x) / (1 - x * x)) * (Math.abs(x) < 1 ? 1 : 0),
+      sawtooth: (x) => 2 * (x - Math.floor(x + 0.5)),
+      multi_modal: (x) => Math.sin(x) + 0.3 * Math.sin(10 * x),
     };
     return functions[selected];
   }
@@ -508,10 +532,14 @@ class GPSymbolicRegressionApp {
       this.generationsValue.textContent = e.target.value;
     });
     this.mutationRateSlider.addEventListener("input", (e) => {
-      this.mutationRateValue.textContent = parseFloat(e.target.value).toFixed(2);
+      this.mutationRateValue.textContent = parseFloat(e.target.value).toFixed(
+        2
+      );
     });
     this.crossoverRateSlider.addEventListener("input", (e) => {
-      this.crossoverRateValue.textContent = parseFloat(e.target.value).toFixed(2);
+      this.crossoverRateValue.textContent = parseFloat(e.target.value).toFixed(
+        2
+      );
     });
     this.maxDepthSlider.addEventListener("input", (e) => {
       this.maxDepthValue.textContent = e.target.value;
@@ -525,8 +553,17 @@ class GPSymbolicRegressionApp {
   }
 
   start() {
-    if (!this.gp || this.generation === 0) {
-      // Initialize new GP run
+    // Prevent starting if already running
+    if (this.running) {
+      return;
+    }
+
+    if (
+      !this.gp ||
+      this.generation === 0 ||
+      this.generation >= this.maxGenerations
+    ) {
+      // Initialize new GP run (either first time, reset, or completed simulation)
       const config = {
         populationSize: parseInt(this.populationSizeSlider.value),
         maxDepth: parseInt(this.maxDepthSlider.value),
@@ -620,7 +657,7 @@ class GPSymbolicRegressionApp {
     if (!tree) return;
 
     this.clearTreeCanvas();
-    
+
     const canvas = this.treeCanvas;
     const ctx = this.treeCtx;
     const width = canvas.width;
@@ -628,11 +665,11 @@ class GPSymbolicRegressionApp {
 
     // Calculate tree layout
     const layout = this.calculateTreeLayout(tree, width, height);
-    
+
     // Draw links first (so they appear behind nodes)
     ctx.strokeStyle = "#1f2a44";
     ctx.lineWidth = 2;
-    layout.links.forEach(link => {
+    layout.links.forEach((link) => {
       ctx.beginPath();
       ctx.moveTo(link.x1, link.y1);
       ctx.lineTo(link.x2, link.y2);
@@ -640,7 +677,7 @@ class GPSymbolicRegressionApp {
     });
 
     // Draw nodes
-    layout.nodes.forEach(node => {
+    layout.nodes.forEach((node) => {
       // Draw circle
       ctx.fillStyle = "#0f1730";
       ctx.strokeStyle = "#5cf2c7";
@@ -655,7 +692,8 @@ class GPSymbolicRegressionApp {
       ctx.font = "600 11px system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const text = typeof node.value === "number" ? node.value.toFixed(1) : node.value;
+      const text =
+        typeof node.value === "number" ? node.value.toFixed(1) : node.value;
       ctx.fillText(text, node.x, node.y);
     });
   }
@@ -664,11 +702,11 @@ class GPSymbolicRegressionApp {
     const nodes = [];
     const links = [];
     const padding = 40;
-    
+
     // First pass: assign levels and count nodes per level
     const levelCounts = {};
     const levelIndices = {};
-    
+
     const assignLevels = (node, level) => {
       if (!node) return;
       if (!levelCounts[level]) {
@@ -679,38 +717,39 @@ class GPSymbolicRegressionApp {
       assignLevels(node.left, level + 1);
       assignLevels(node.right, level + 1);
     };
-    
+
     assignLevels(tree, 0);
-    
+
     const maxLevel = Math.max(...Object.keys(levelCounts).map(Number));
     const levelHeight = (height - 2 * padding) / (maxLevel + 1);
-    
+
     // Second pass: assign positions
     const positionNode = (node, level, parent = null) => {
       if (!node) return null;
-      
+
       const index = levelIndices[level]++;
       const totalAtLevel = levelCounts[level];
-      const x = padding + ((width - 2 * padding) * (index + 0.5)) / totalAtLevel;
+      const x =
+        padding + ((width - 2 * padding) * (index + 0.5)) / totalAtLevel;
       const y = padding + level * levelHeight;
-      
+
       const nodeData = { x, y, value: node.value };
       nodes.push(nodeData);
-      
+
       if (parent) {
         links.push({ x1: parent.x, y1: parent.y, x2: x, y2: y });
       }
-      
+
       positionNode(node.left, level + 1, nodeData);
       positionNode(node.right, level + 1, nodeData);
-      
+
       return nodeData;
     };
-    
+
     // Reset indices for positioning
-    Object.keys(levelIndices).forEach(key => levelIndices[key] = 0);
+    Object.keys(levelIndices).forEach((key) => (levelIndices[key] = 0));
     positionNode(tree, 0);
-    
+
     return { nodes, links };
   }
 
@@ -756,13 +795,13 @@ class GPSymbolicRegressionApp {
     let yMin = Math.min(...targetPoints);
     let yMax = Math.max(...targetPoints);
     if (evolvedPoints.length > 0) {
-      const validEvolved = evolvedPoints.filter(y => isFinite(y));
+      const validEvolved = evolvedPoints.filter((y) => isFinite(y));
       if (validEvolved.length > 0) {
         yMin = Math.min(yMin, ...validEvolved);
         yMax = Math.max(yMax, ...validEvolved);
       }
     }
-    
+
     // Add margin
     const yRange = yMax - yMin;
     yMin -= yRange * 0.1;
@@ -770,7 +809,8 @@ class GPSymbolicRegressionApp {
 
     // Helper functions
     const xScale = (x) => padding + ((x - xMin) / (xMax - xMin)) * plotWidth;
-    const yScale = (y) => height - padding - ((y - yMin) / (yMax - yMin)) * plotHeight;
+    const yScale = (y) =>
+      height - padding - ((y - yMin) / (yMax - yMin)) * plotHeight;
 
     // Draw axes
     ctx.strokeStyle = "#1f2a44";
@@ -839,17 +879,17 @@ class GPSymbolicRegressionApp {
     const treeContainer = this.treeContainer;
     this.treeCanvas.width = treeContainer.clientWidth;
     this.treeCanvas.height = treeContainer.clientHeight;
-    
+
     // Resize plot canvas
     const plotContainer = this.plotCanvas.parentElement;
     this.plotCanvas.width = plotContainer.clientWidth;
     this.plotCanvas.height = plotContainer.clientHeight - 40;
-    
+
     // Resize fitness canvas
     const fitnessContainer = this.fitnessCanvas.parentElement;
     this.fitnessCanvas.width = fitnessContainer.clientWidth;
     this.fitnessCanvas.height = fitnessContainer.clientHeight;
-    
+
     // Redraw if we have data
     if (this.gp && this.gp.bestIndividual) {
       this.drawTree(this.gp.bestIndividual);
@@ -885,20 +925,21 @@ class GPSymbolicRegressionApp {
     const plotHeight = height - 2 * padding;
 
     // Find data range (use log scale for fitness)
-    const bestMin = Math.min(...this.bestFitnessHistory.filter(v => v > 0));
+    const bestMin = Math.min(...this.bestFitnessHistory.filter((v) => v > 0));
     const bestMax = Math.max(...this.bestFitnessHistory);
-    const avgMin = Math.min(...this.avgFitnessHistory.filter(v => v > 0));
+    const avgMin = Math.min(...this.avgFitnessHistory.filter((v) => v > 0));
     const avgMax = Math.max(...this.avgFitnessHistory);
-    
+
     let yMin = Math.min(bestMin, avgMin);
     let yMax = Math.max(bestMax, avgMax);
-    
+
     // Use log scale
     yMin = Math.log10(Math.max(yMin, 0.0001));
     yMax = Math.log10(Math.max(yMax, 0.0001));
     const yRange = yMax - yMin;
-    
-    const xScale = (i) => padding + (i / Math.max(this.generation - 1, 1)) * plotWidth;
+
+    const xScale = (i) =>
+      padding + (i / Math.max(this.generation - 1, 1)) * plotWidth;
     const yScale = (val) => {
       const logVal = Math.log10(Math.max(val, 0.0001));
       return height - padding - ((logVal - yMin) / yRange) * plotHeight;
@@ -960,7 +1001,7 @@ class GPSymbolicRegressionApp {
     ctx.font = "11px system-ui";
     ctx.textAlign = "left";
     ctx.fillText("Generation", width - padding - 50, height - padding + 20);
-    
+
     ctx.save();
     ctx.translate(15, height / 2);
     ctx.rotate(-Math.PI / 2);
