@@ -179,6 +179,11 @@ class GeneticProgramming {
     this.crossoverRate = config.crossoverRate || 0.9;
     this.targetFunction = config.targetFunction;
     
+    // Constants for safe evaluation
+    this.MAX_EXP_VALUE = 50;
+    this.MIN_EXP_VALUE = -50;
+    this.MAX_RESULT_VALUE = 1e10;
+    
     this.operators = ["+", "-", "*", "/"];
     this.unaryOperators = ["sin", "cos", "abs"]; // Reduced set for stability
     
@@ -224,8 +229,8 @@ class GeneticProgramming {
       return new TreeNode("x", null, null, "terminal");
     } else {
       // Random constant between -5 and 5
-      const constant = (Math.random() * 10 - 5).toFixed(2);
-      return new TreeNode(parseFloat(constant), null, null, "constant");
+      const constant = Math.round((Math.random() * 10 - 5) * 100) / 100;
+      return new TreeNode(constant, null, null, "constant");
     }
   }
 
@@ -893,7 +898,7 @@ class GPSymbolicRegressionApp {
     yMax = Math.log10(Math.max(yMax, 0.0001));
     const yRange = yMax - yMin;
     
-    const xScale = (i) => padding + (i / (this.generation - 1)) * plotWidth;
+    const xScale = (i) => padding + (i / Math.max(this.generation - 1, 1)) * plotWidth;
     const yScale = (val) => {
       const logVal = Math.log10(Math.max(val, 0.0001));
       return height - padding - ((logVal - yMin) / yRange) * plotHeight;
