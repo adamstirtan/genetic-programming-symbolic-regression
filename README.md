@@ -2,6 +2,8 @@
 
 A small, self-contained web app that demonstrates tree-based Genetic Programming (GP) solving symbolic regression. It evolves mathematical expression trees to approximate a chosen target function, and visualizes the best program, function fit, and fitness over time—all in the browser with plain JavaScript and Canvas.
 
+<img width="1280" height="720" alt="510563291-cdc5d41d-0184-407e-a483-ce6543dd03e7" src="https://github.com/user-attachments/assets/65d6488c-bac4-4d47-a771-2f07fc1d30ea" />
+
 Under the hood, each individual is an expression tree built from terminals (x and random constants) and operators (+, -, \*, /, sin, cos, abs, exp, log, sqrt). The engine uses tournament selection, subtree crossover, subtree mutation, and a touch of elitism. Fitness is mean squared error over evenly spaced sample points in the range [-3, 3], with protected operators and simple overflow guards to keep evaluations stable.
 
 Using it is straightforward: open `index.html` in a modern browser. Pick a target function, tune GA parameters (population size, generations, mutation/crossover rates, max tree depth), and hit Start. While running, Start is disabled; you can Pause at any time, Reset to clear state, or simply press Start again after a run completes to begin a fresh evolution. The UI shows the current best tree, a plot comparing the target vs. evolved function, and a log-scale fitness chart for best and average scores per generation.
